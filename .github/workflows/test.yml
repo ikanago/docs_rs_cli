@@ -1,4 +1,4 @@
-name: Rust
+name: Unit Test
 
 on:
   push:
@@ -15,14 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Check format
-      run: cargo fmt -- --check
-    - run: rustup component add clippy
-    - uses: actions-rs/clippy-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-features -- -D warnings
     - name: Build
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+

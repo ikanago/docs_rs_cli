@@ -1,0 +1,26 @@
+name: Static Analysis
+
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check format
+      run: cargo fmt -- --check
+    - run: rustup component add clippy
+    - name: Lint
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --all-features -- -D warnings
+
