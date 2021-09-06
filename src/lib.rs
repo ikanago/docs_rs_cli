@@ -1,3 +1,5 @@
+pub mod search_index;
+
 #[cfg(test)]
 mod tests {
     #[test]
