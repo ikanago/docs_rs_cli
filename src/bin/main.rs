@@ -1,11 +1,12 @@
-use drc::search_index;
+use drc::search_index::IndexInitializer;
 
 #[tokio::main]
 async fn main() {
-    let client = reqwest::Client::new();
     let crate_name = "tokio";
     let crate_version = "latest";
-    let html = search_index::fetch_search_index(&client, crate_name, crate_version)
+    let init = IndexInitializer::new(crate_name, crate_version);
+    let index = init.fetch_search_index_url()
         .await
         .unwrap();
+    dbg!(index);
 }
