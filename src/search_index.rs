@@ -25,7 +25,49 @@ impl IndexInitializer {
         }
     }
 
-    pub async fn fetch_search_index_url(&self) -> anyhow::Result<String> {
+    pub async fn fetch_search_index(&self) -> anyhow::Result<String> {
+        let url = self.fetch_search_index_url().await?;
+        let search_index_js = self
+            .client
+            .get(url)
+            .send()
+            .await?
+            .text_with_charset("utf-8")
+            .await?;
+        Self::parse_search_index_js(&search_index_js)
+    }
+
+    fn parse_search_index_js(index: &str) -> anyhow::Result<String> {
+        // Targetted JSON is surrounded by outermost `'` pair.
+        let json_start = index
+            .find('\'')
+            .ok_or_else(|| anyhow::anyhow!("Invalid format of JSON search index"))?
+            + 1;
+        let json_end = index
+            .rfind('\'')
+            .ok_or_else(|| anyhow::anyhow!("Invalid format of JSON search index"))?;
+        let json = &index[json_start..json_end];
+        Ok(IndexInitializer::format_json(json))
+    }
+
+    fn format_json(index: &str) -> String {
+        // JSON parsed by `parse_search_index_js` includes unnecessary `\` because the JSON is
+        // originally embedded in JavaScript code as a string literal.
+        // So remove `\`s along following constraints:
+        // * `\"` -> `\"`
+        // * `\{ANY CHARACTER}` -> `{ANY CHARACTER}`
+        let mut chars = index.chars().peekable();
+        let mut formatted = String::new();
+        while let Some(c) = chars.next() {
+            if c == '\\' && chars.peek() != Some(&'\"') {
+                continue;
+            }
+            formatted.push(c);
+        }
+        formatted
+    }
+
+    async fn fetch_search_index_url(&self) -> anyhow::Result<String> {
         let html = self.fetch_top_page().await?;
         let document = Html::parse_document(&html);
         let filename = self.extract_search_index_filename(&document)?;
@@ -68,5 +110,19 @@ impl IndexInitializer {
             self.crate_name,
             self.crate_version
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_search_index_json() {
+        let json = r#"{ "desc": "I have a \\\"dream\\\".", "hoge": "John\'s"}"#;
+        assert_eq!(
+            r#"{ "desc": "I have a \"dream\".", "hoge": "John's"}"#,
+            IndexInitializer::format_json(json)
+        )
     }
 }
