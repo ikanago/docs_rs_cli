@@ -90,7 +90,12 @@ impl IndexInitializer {
         // Newer and more information
         let div_tags = Selector::parse("div").unwrap();
         for element in html.select(&div_tags) {
+            // e.g. tokio(last release is around 2021/05~)
             if let Some(index_filename) = element.value().attr("data-search-index-js") {
+                return Ok(index_filename.to_string());
+            }
+            // e.g. gptman(last release is around 2021/03~2021/04)
+            if let Some(index_filename) = element.value().attr("data-search-js") {
                 return Ok(index_filename.to_string());
             }
         }
@@ -98,6 +103,7 @@ impl IndexInitializer {
         // Older and less information
         let script_tags = Selector::parse("script").unwrap();
         for element in html.select(&script_tags) {
+            // e.g. tuikit(last release is around ~2021/02)
             if let Some(maybe_index_filename) = element.value().attr("src") {
                 if maybe_index_filename.contains("search-index") {
                     return Ok(maybe_index_filename.to_string());
